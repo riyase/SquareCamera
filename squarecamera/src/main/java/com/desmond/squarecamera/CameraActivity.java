@@ -1,17 +1,22 @@
 package com.desmond.squarecamera;
 
 import android.content.Intent;
+import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 
 
 public class CameraActivity extends AppCompatActivity {
 
     public static final String TAG = CameraActivity.class.getSimpleName();
-
+    public static final String KEY_CAM_ID = "camId";
+    public static final String KEY_SHOW_PREVIEW = "showPreview";
+    private int cameraID;
+    private boolean showPreview;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.squarecamera__CameraFullScreenTheme);
@@ -22,10 +27,13 @@ public class CameraActivity extends AppCompatActivity {
         }
         setContentView(R.layout.squarecamera__activity_camera);
 
+        cameraID = getIntent().getIntExtra(KEY_CAM_ID,Camera.CameraInfo.CAMERA_FACING_BACK);
+        showPreview = getIntent().getBooleanExtra(KEY_SHOW_PREVIEW,true);
+
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.fragment_container, CameraFragment.newInstance(), CameraFragment.TAG)
+                    .replace(R.id.fragment_container, CameraFragment.newInstance(cameraID,showPreview) , CameraFragment.TAG)
                     .commit();
         }
     }

@@ -3,6 +3,7 @@ package com.desmond.demo;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -45,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void launchCamera(View view) {
         Intent startCustomCameraIntent = new Intent(this, CameraActivity.class);
+        startCustomCameraIntent.putExtra(CameraActivity.KEY_CAM_ID, Camera.CameraInfo.CAMERA_FACING_FRONT);
+        startCustomCameraIntent.putExtra(CameraActivity.KEY_SHOW_PREVIEW,false);
         startActivityForResult(startCustomCameraIntent, REQUEST_CAMERA);
     }
 }

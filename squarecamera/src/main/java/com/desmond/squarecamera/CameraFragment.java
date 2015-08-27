@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Size;
@@ -40,7 +42,9 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     private static final int PICTURE_SIZE_MAX_WIDTH = 1280;
     private static final int PREVIEW_SIZE_MAX_WIDTH = 640;
 
-    private int mCameraID;
+    private static int mCameraID;
+    private static boolean mShowPreview;
+
     private String mFlashMode;
     private Camera mCamera;
     private SquareCameraPreview mPreviewView;
@@ -50,7 +54,9 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     private CameraOrientationListener mOrientationListener;
 
-    public static Fragment newInstance() {
+    public static Fragment newInstance(int camId, boolean showPreview) {
+        mCameraID = camId;
+        mShowPreview = showPreview;
         return new CameraFragment();
     }
 
@@ -68,8 +74,10 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         // Restore your state here because a double rotation with this fragment
         // in the backstack will cause improper state restoration
         // onCreate() -> onSavedInstanceState() instead of going through onCreateView()
+        //mCameraID = getArguments().getInt(CAMERA_ID_KEY);
+        Log.d(CameraActivity.TAG,"onCreate camid:"+mCameraID);
         if (savedInstanceState == null) {
-            mCameraID = getBackCameraID();
+            //mCameraID = getBackCameraID();
             mFlashMode = Camera.Parameters.FLASH_MODE_AUTO;
             mImageParameters = new ImageParameters();
         } else {
@@ -82,6 +90,8 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        //mCameraID = getArguments().getInt(CAMERA_ID_KEY);
+        //Log.d(CameraActivity.TAG,"onCreateView camid:"+mCameraID);
         return inflater.inflate(R.layout.squarecamera__fragment_camera, container, false);
     }
 
@@ -402,7 +412,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     }
 
     @Override
-    public void onStop() {
+    public void onPause() {
         mOrientationListener.disable();
 
         // stop the preview
@@ -412,7 +422,15 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             mCamera = null;
         }
 
-        super.onStop();
+        super.onPause();
+    }
+
+    @Override
+    public void onResume() {
+
+        mOrientationListener.enable();
+        restartPreview();
+        super.onResume();
     }
 
     @Override
@@ -457,14 +475,20 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         int rotation = getPhotoRotation();
 //        Log.d(TAG, "normal orientation: " + orientation);
 //        Log.d(TAG, "Rotate Picture by: " + rotation);
-        getFragmentManager()
-                .beginTransaction()
-                .replace(
-                        R.id.fragment_container,
-                        EditSavePhotoFragment.newInstance(data, rotation, mImageParameters.createCopy()),
-                        EditSavePhotoFragment.TAG)
-                .addToBackStack(null)
-                .commit();
+        if (mShowPreview) {
+            getFragmentManager()
+                    .beginTransaction()
+                    .replace(
+                            R.id.fragment_container,
+                            EditSavePhotoFragment.newInstance(data, rotation, mImageParameters.createCopy()),
+                            EditSavePhotoFragment.TAG)
+                    .addToBackStack(null)
+                    .commit();
+        } else {
+            Bitmap bitmap = ImageUtility.rotatePicture(getActivity(),rotation,data);
+            Uri photoUri = ImageUtility.savePicture(getActivity(), bitmap);
+            ((CameraActivity) getActivity()).returnPhotoUri(photoUri);
+        }
     }
 
     private int getPhotoRotation() {
@@ -499,6 +523,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             if (orientation != ORIENTATION_UNKNOWN) {
                 mCurrentNormalizedOrientation = normalize(orientation);
             }
+            //Log.d(TAG,"o")
         }
 
         /**
